@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="orchid_api.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="Logging.fs" />
+    <Compile Include="Extensions.fs" />
+    <Compile Include="IO.fs" />
+    <Compile Include="IVariable.fs" />
+    <Compile Include="Variables.fs" />
+    <Compile Include="VariableFactory.fs" />
+    <Compile Include="VariableConverter.fs" />
+    <Compile Include="Expressions.fs" />
+    <Compile Include="FunctionAttribute.fs" />
+    <Compile Include="Functions.fs" />
+    <Compile Include="Environment.fs" />
+    <Compile Include="Scope.fs" />
+    <Compile Include="Lexer.fs" />
+    <Compile Include="ErrorCodes.fs" />
+    <Compile Include="Parser.fs" />
+    <Compile Include="Evaluator.fs" />
+    <Compile Include="ClrFunctions.fs" />
+    <Compile Include="ScriptFunction.fs" />
+    <Compile Include="Setup.fs" />
+  </ItemGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <PackageReference Include="IronPython" Version="2.7.9" />
+    <PackageReference Include="log4net" Version="2.0.8" />
+  </ItemGroup>
+
+</Project>

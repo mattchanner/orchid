@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="python_functions.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="Constants.fs" />
+    <Compile Include="Arrays.fs" />
+    <Compile Include="Information.fs" />
+    <Compile Include="Math.fs" />
+    <Compile Include="Statistics.fs" />
+  </ItemGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Orchid.Base\Orchid.Base.fsproj" />
+  </ItemGroup>
+
+</Project>
