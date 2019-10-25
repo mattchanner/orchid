@@ -155,11 +155,11 @@ module internal Validator =
 
         // return a sequence containing ParseErrors for each of the failed bracket counts
         seq {
-            if (square.count > 0) then
+            if (square.count <> 0) then
                 yield ParseError(UnmatchedSquareBracket, "Unmatched square bracket", square.tok)
-            if (curly.count  > 0) then 
+            if (curly.count <> 0) then 
                 yield ParseError(UnmatchedCurlyBracket, "Unmatched curly bracket", curly.tok)
-            if (round.count  > 0) then
+            if (round.count <> 0) then
                 yield ParseError(UnmatchedRoundBracket, "Unmatched round bracket",  round.tok)
         }
     
@@ -192,7 +192,10 @@ module internal Validator =
     ///      multiple statements must contain assignments followed by a final expression (the result)
     let statementValidator (expressions: Expr list) =
 
-        let isAssignment expr = match expr with | Assign(Identifier(name, _), right, _) -> true | _ -> false
+        let isAssignment expr = 
+            match expr with 
+            | Assign(Identifier(name, _), right, _) -> true 
+            | _ -> false
         
         // Returns a tuple of the number of assign expressions * number of non assign expressions
         let countAssignments arr =
@@ -536,7 +539,7 @@ module public Parser =
         else
             let tokenVal = next.Value
             match tokenVal with            
-            | Token.Identifier(ident, tok) ->
+            | Token.Identifier(ident, _) ->
                 ps.Advance() |> ignore
                 let maybeRParen = ps.PeekToken()
                 if maybeRParen.IsSome && (Tokens.isRSquare maybeRParen.Value) then
@@ -559,9 +562,9 @@ module public Parser =
         let expr = 
             let tok = ps.Current.Value
             match tok with
-            | Token.Let(tok)             -> parseLetBinding ps |> ignore; parseInvocation ps
-            | Token.SemiColon(tok)       -> ps.Advance() |> ignore; true
-            | Token.LSquare(tok)         -> parseVariable ps |> ignore; parseInvocation ps
+            | Token.Let(_)               -> parseLetBinding ps |> ignore; parseInvocation ps
+            | Token.SemiColon(_)         -> ps.Advance() |> ignore; true
+            | Token.LSquare(_)           -> parseVariable ps |> ignore; parseInvocation ps
             | Token.Bool(v, _)           -> Bool(v, tok) |> pushExpr ps |> ignore; parseInvocation ps
             | Token.Identifier(ident, _) -> Identifier(ident, tok) |> pushExpr ps |> ignore; parseInvocation ps
             | Token.Number(num, _)       -> Num(num, tok)     |> pushExpr ps |> ignore; parseInvocation ps

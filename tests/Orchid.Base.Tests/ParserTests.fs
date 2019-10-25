@@ -9,7 +9,10 @@ open Xunit
 
 module ParserTests =
     
-    let environment = EnvironmentSetup.SetupFromPaths(Assembly.GetExecutingAssembly().Location, Assembly.GetExecutingAssembly().Location)
+    let environment = 
+        EnvironmentSetup.SetupFromPaths(
+            Assembly.GetExecutingAssembly().Location, 
+            Assembly.GetExecutingAssembly().Location)
 
     let parse str =
         let result = Parser.parseString str environment
