@@ -6,6 +6,7 @@ open Orchid.Expressions
 open Orchid.Runtime
 
 open Xunit
+open FsUnit.Xunit
 
 module ParserTests =
     
@@ -21,52 +22,52 @@ module ParserTests =
     [<Fact>]
     let ``Can parse floating point number`` () =
         parse "1.234" |> function
-        | [ Expr.Num(value, _) ] -> Assert.Equal(value, 1.234)
+        | [ Expr.Num(value, _) ] -> value |> should equal 1.234
         | _ -> failwith "Expected a single numeric expression"
 
     [<Fact>]
     let ``Can parse true``() =
         parse "true" |> function
-        | [ Expr.Bool(value, _) ] -> Assert.True(value)
+        | [ Expr.Bool(value, _) ] -> value |> should be True
         | _ -> failwith "Unexpected expressions list"
 
     [<Fact>]
     let ``Can parse false``() =
         parse "false" |> function
-        | [ Expr.Bool(value, _) ] -> Assert.False(value)
+        | [ Expr.Bool(value, _) ] -> value |> should be False
         | _ -> failwith "Unexpected expressions list"
 
     [<Fact>]
     let ``Can parse single quoted string`` () =
         parse "'A single quoted string'" |> function
         | [ Expr.Str(str, quoteType, _) ] -> 
-            Assert.Equal("A single quoted string", str)
-            Assert.Equal(QuoteType.Single, quoteType)
+            str |> should equal "A single quoted string"
+            quoteType |> should equal QuoteType.Single
         | _ -> failwith "Unexpected expressions list"
 
     [<Fact>]
     let ``Can parse double quoted string`` () =
         parse "\"A double quoted string\"" |> function
         | [ Expr.Str(str, quoteType, _) ] -> 
-            Assert.Equal("A double quoted string", str)
-            Assert.Equal(QuoteType.Double, quoteType)
+            str |> should equal "A double quoted string"
+            quoteType |> should equal QuoteType.Double
         | _ -> failwith "Unexpected expressions list"
 
     [<Fact>]
     let ``Can parse unary number``() =
         parse "-123.456" |> function
         | [ Expr.UnaryOperator(op, Expr.Num(num, _), _) ] -> 
-            Assert.Equal(Op.Minus, op)
-            Assert.Equal(123.456, num)
+            op |> should equal Op.Minus
+            num |> should equal 123.456
         | _ -> failwith "Unexpected expressions list"
 
     [<Fact>]
     let ``Can parse simple binary plus``() =
         parse "34 + 856" |> function
         | [ Expr.BinaryOperator(Expr.Num(lhs, _), op, Expr.Num(rhs, _), _) ] ->
-            Assert.Equal(34.0, lhs)
-            Assert.Equal(Op.Plus, op)
-            Assert.Equal(856.0, rhs)
+            lhs |> should equal 34.0
+            op |> should equal Op.Plus
+            rhs |> should equal 856.0
         | _ -> failwith "Unexpected expression list"
 
     [<Fact>]
@@ -95,5 +96,5 @@ module ParserTests =
                     Expr.Num(3.0, _)
                 ],
                 _)
-            ]-> Assert.Equal("average", name)                
+            ]-> name |> should equal "average"
         | _ as ls -> failwith ("Unexpected expression list: " + (ls.ToString()))
