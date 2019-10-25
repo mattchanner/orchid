@@ -119,4 +119,5 @@ module EnvironmentSetup =
             (createClrFunctionLoader clrPath)
             (createScriptLoader scriptPath)
         |]
+
         Setup (Scope.CreateInMemoryScope) loaders (fun _ -> CreateMacroRegistry Seq.empty)

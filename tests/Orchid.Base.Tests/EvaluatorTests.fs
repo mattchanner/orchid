@@ -1,6 +1,7 @@
 ﻿namespace Orchid
 
 open System.Collections.Generic
+open System.IO
 open System.Reflection
 
 open Orchid.Expressions
@@ -15,12 +16,18 @@ module EvaluatorTests =
 
     let environment = 
         EnvironmentSetup.SetupFromPaths(
-            Assembly.GetExecutingAssembly().Location, 
-            Assembly.GetExecutingAssembly().Location)
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
 
     let parse str =
         let result = Parser.parseString str environment
-        result.Expressions
+        if result.Errors.Length > 0 then 
+            result.Errors 
+            |> List.map (fun x -> sprintf "[Code %i]: %s -> %A" (x.Code) (x.Message) (x.Token))
+            |> List.reduce (+)
+            |> failwith
+        else
+            result.Expressions
 
     let parseAndEval str =
         parse str 
@@ -32,12 +39,64 @@ module EvaluatorTests =
         |> evalAll environment
 
     let evalBool str =
-        let var = parseAndEval str
+        let var = parseAndEvalAll str
         var.AsBoolValue(0).Value
 
     let evalNum str =
-        let var = parseAndEval str
-        var.AsDoubleValue(0).Value
+        let var = parseAndEvalAll str
+        match var.AsDoubleValue(0) with
+        | Some(value) -> value
+        | None -> failwith <| sprintf "Unexpected var type returned %A" (var.TypeCode)
+         
+
+    type ``Operator tests``() =
+
+        [<Fact>]
+        let ``> test``() =
+            evalBool "3 > 2" |> should be True
+            evalBool "2 > 3" |> should be False
+
+        [<Fact>]
+        let ``>= test``() =
+            evalBool "2 >= 2" |> should be True
+            evalBool "3 >= 2" |> should be True
+            evalBool "3 >= 5" |> should be False
+
+        [<Fact>]
+        let ``< test``() =
+            evalBool "1 < 2" |> should be True
+            evalBool "1 > 2" |> should be False
+
+        [<Fact>]
+        let ``<= test``() =
+            evalBool "2.0 <= 2.0" |> should be True
+            evalBool "1.2 <= 2" |> should be True
+            evalBool "3 <= 2.999" |> should be False
+
+        [<Fact>]
+        let ``+ test``() =
+            evalNum "1.5 + 1" |> should equal 2.5
+
+        [<Fact>]
+        let ``- test``() =
+            evalNum "1.5 - 1" |> should equal 0.5
+
+        [<Fact>]
+        let ``* test``() =
+            evalNum "1.5 * 1" |> should equal 1.5
+            evalNum "2 * 2" |> should equal 4.0
+
+        [<Fact>]
+        let ``/ test``() =
+            evalNum "3.5 / 2.0" |> should equal 1.75
+
+        [<Fact>]
+        let ``% test``() =
+            evalNum "10 % 3" |> should equal (10.0 % 3.0)
+
+        [<Fact>]
+        let ``^ test``() =
+            evalNum "16 ^ 4.2" |> should equal (16.0 ** 4.2)
 
     type ``Basic evaluator tests``() =        
 
@@ -92,51 +151,26 @@ module EvaluatorTests =
             evalNum "(1 + 2) * 3" |> should equal 9.0
             evalNum "1 + 2 * 3"   |> should equal 7.0
 
-    type ``Operator tests``() =
+    type ``Multi step statements``() =
+        
+        [<Fact>]
+        let ``Simple multi step evaluation``() =
+            evalNum @"
+                let x = 25;
+                let y = 45;
+                x + y
+            " |> should equal 70.0
 
         [<Fact>]
-        let ``> test``() =
-            evalBool "3 > 2" |> should be True
-            evalBool "2 > 3" |> should be False
+        let ``Stdev test``() =
+            evalNum @"
+                # data
+                let x = array(1.2, 2.3, 3.4, 5.6);
 
-        [<Fact>]
-        let ``>= test``() =
-            evalBool "2 >= 2" |> should be True
-            evalBool "3 >= 2" |> should be True
-            evalBool "3 >= 5" |> should be False
+                let ave = Sum(x) / Size(x);
+                let var = Sum((x-ave)^2) / (Size(x)-1);
+                let stdev = (var) ^ 0.5;
 
-        [<Fact>]
-        let ``< test``() =
-            evalBool "1 < 2" |> should be True
-            evalBool "1 > 2" |> should be False
-
-        [<Fact>]
-        let ``<= test``() =
-            evalBool "2.0 <= 2.0" |> should be True
-            evalBool "1.2 <= 2" |> should be True
-            evalBool "3 <= 2.999" |> should be False
-
-        [<Fact>]
-        let ``+ test``() =
-            evalNum "1.5 + 1" |> should equal 2.5
-
-        [<Fact>]
-        let ``- test``() =
-            evalNum "1.5 - 1" |> should equal 0.5
-
-        [<Fact>]
-        let ``* test``() =
-            evalNum "1.5 * 1" |> should equal 1.5
-            evalNum "2 * 2" |> should equal 4.0
-
-        [<Fact>]
-        let ``/ test``() =
-            evalNum "3.5 / 2.0" |> should equal 1.75
-
-        [<Fact>]
-        let ``% test``() =
-            evalNum "10 % 3" |> should equal (10.0 % 3.0)
-
-        [<Fact>]
-        let ``^ test``() =
-            evalNum "16 ^ 4.2" |> should equal (16.0 ** 4.2)
+                # return stdev as result
+                stdev
+            " |> should (equalWithin 0.001) 1.8786

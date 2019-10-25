@@ -1,5 +1,6 @@
 ﻿namespace Orchid
 
+open System.IO
 open System.Reflection
 
 open Orchid.Expressions
@@ -12,8 +13,8 @@ module ParserTests =
     
     let environment = 
         EnvironmentSetup.SetupFromPaths(
-            Assembly.GetExecutingAssembly().Location, 
-            Assembly.GetExecutingAssembly().Location)
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), 
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location))
 
     let parse str =
         let result = Parser.parseString str environment
