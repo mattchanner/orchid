@@ -44,9 +44,10 @@ module EvaluatorTests =
         [<Fact>]
         let ``Can evaluate list of numbers``() =
             let result = parseAndEval "{1, 2, 3, 4}"
-            Assert.Equal(VarTypeCode.Number, result.TypeCode)
-            Assert.True(result.IsVector)
-            Assert.Equal(4, result.Length)
+            
+            result.TypeCode |> should equal VarTypeCode.Number
+            result.IsVector |> should be True
+            result.Length |> should equal 4
 
             let numbers, _ = result.ToDoubleArrayWithKnockOut()
             let expected  = [|1.0; 2.0; 3.0; 4.0|] 
