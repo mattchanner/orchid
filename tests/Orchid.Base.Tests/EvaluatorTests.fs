@@ -69,17 +69,11 @@ module EvaluatorTests =
         
         [<Fact>]
         let ``Can parse and eval operators with different precedence``() =
-            let result = parseAndEval "1 + 2 * 3 / 4"
-            match result.AsDoubleValue(0) with
-            | Some(value) -> value |> should equal 2.5
-            | None -> failwith ("Unexpected double value of " + result.ToString())
+            evalNum "1 + 2 * 3 / 4" |> should equal 2.5
 
         [<Fact>]
         let ``Can subtract within an if expression`` () =
-            let var = parseAndEval "if(1 - 2 > 0, 3 - 2, 5 - 1)"
-            match var.AsDoubleValue(0) with
-            | Some(value) -> value |> should equal 4.0
-            | r -> failwith ("Unexpected variable returned " + r.Value.ToString())
+            evalNum "if(1 - 2 > 0, 3 - 2, 5 - 1)" |> should equal 4.0
 
         [<Fact>]
         let ``Can eval logical and operator on valid bool expressions``() =
