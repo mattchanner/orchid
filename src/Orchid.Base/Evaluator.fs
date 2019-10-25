@@ -87,7 +87,6 @@ module public Evaluator =
             | _ -> VariableFactory.MakeError("Unknown operator given")
 
         | Expr.Parens(exp, _) -> eval env exp
-        // Internal statement handlers
 
         | Expr.AnonymousFunc(ls, _) -> 
             ls 
@@ -102,7 +101,9 @@ module public Evaluator =
             |> makeBool
 
         | Expr.IfThenElse(ifexpr, thenexpr, elseexpr, t) -> 
-            if bool (eval env ifexpr) then eval env thenexpr else eval env elseexpr
+            if bool (eval env ifexpr) 
+            then eval env thenexpr 
+            else eval env elseexpr
 
         | Expr.Or(exprs, t) ->
             // Enumerate all expressions, exiting on first occurrence of a true result

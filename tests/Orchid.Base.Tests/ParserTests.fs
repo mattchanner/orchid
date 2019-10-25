@@ -18,22 +18,11 @@ module ParserTests =
         let result = Parser.parseString str environment
         result.Expressions
 
-    let eval str =
-        let exprs = parse str
-        Evaluator.eval environment (List.item 0 exprs)
-
     [<Fact>]
     let ``Can parse floating point number`` () =
         parse "1.234" |> function
         | [ Expr.Num(value, _) ] -> Assert.Equal(value, 1.234)
         | _ -> failwith "Expected a single numeric expression"
-
-    [<Fact>]
-    let ``Can subtract within an if expression`` () =
-        let var = eval "if(1 - 2 > 0, 3 - 2, 5 - 1)"
-        match var.AsDoubleValue(0) with
-        | Some(value) -> Assert.Equal(4.0, value)
-        | r -> failwith ("Unexpected variable returned " + r.Value.ToString())
 
     [<Fact>]
     let ``Can parse true``() =
@@ -93,13 +82,6 @@ module ParserTests =
                 Expr.Num(3.0, _),
                 _)] -> Assert.True(true)
         | _ as ls -> failwith ("Unexpected expression list: " + (ls.ToString()))
-
-    [<Fact>]
-    let ``Can parse and eval operators with different precedence``() =
-        let result = eval "1 + 2 * 3 / 4"
-        match result.AsDoubleValue(0) with
-        | Some(value) -> Assert.Equal(2.5, value)
-        | None -> failwith ("Unexpected double value of " + result.ToString())
 
     [<Fact>]
     let ``Can parse function``() =

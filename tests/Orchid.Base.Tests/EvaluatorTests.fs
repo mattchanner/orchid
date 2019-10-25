@@ -54,4 +54,17 @@ module EvaluatorTests =
         
         Assert.Equal(expected, booleans :> IEnumerable<bool>)
         
+    [<Fact>]
+    let ``Can parse and eval operators with different precedence``() =
+        let result = parseAndEval "1 + 2 * 3 / 4"
+        match result.AsDoubleValue(0) with
+        | Some(value) -> Assert.Equal(2.5, value)
+        | None -> failwith ("Unexpected double value of " + result.ToString())
+
+    [<Fact>]
+    let ``Can subtract within an if expression`` () =
+        let var = parseAndEval "if(1 - 2 > 0, 3 - 2, 5 - 1)"
+        match var.AsDoubleValue(0) with
+        | Some(value) -> Assert.Equal(4.0, value)
+        | r -> failwith ("Unexpected variable returned " + r.Value.ToString())
         
