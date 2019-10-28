@@ -82,6 +82,24 @@ type Token =
         | RSquare(tl)       -> tl
         | SemiColon(tl)     -> tl
         | EOF(tl)           -> tl
+    override x.ToString() =
+        match x with
+        | Let(tl)           -> "Let"
+        | Number(n, tl)     -> sprintf "Num(%f)" n
+        | Bool(v, tl)       -> sprintf "Num(%b)" v
+        | String(s, _, tl)  -> sprintf "Str(%s)" s
+        | Comment(c, tl)    -> sprintf "Comment(%s)" c
+        | Identifier(n, tl) -> sprintf "Ident(%s)" n
+        | Operator(op, tl)   -> sprintf "Op(%A)" op
+        | Comma(tl)         -> "Comma"
+        | LParen(tl)        -> "LParen"
+        | RParen(tl)        -> "RParen"
+        | LCurly(tl)        -> "LCurly"
+        | RCurly(tl)        -> "RCurly"
+        | LSquare(tl)       -> "LSquare"
+        | RSquare(tl)       -> "RSquare"
+        | SemiColon(tl)     -> "SemiColon"
+        | EOF(tl)           -> "<<EOF>>"
 
 /// The AST definition of the expression language
 type Expr =
@@ -154,8 +172,6 @@ type ParseResult(expressions:Expr list, errors: ParseError list) =
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<Extension>] 
 module Expr =
-    
-    open System.Text
 
     /// Returns a string representation of the given operator
     [<CompiledName("OpString")>]
@@ -220,6 +236,7 @@ module Expr =
             sb.Append("(") |> (printexplist ls) |> ignore
             sb.Append(")")
         else sb
+
     /// Prints an expression list to the string builder
     and private printexplist (ls:Expr list) (sb:StringBuilder) =
         let size = List.length ls

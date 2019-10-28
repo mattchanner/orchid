@@ -47,8 +47,8 @@ module EvaluatorTests =
         match var.AsDoubleValue(0) with
         | Some(value) -> value
         | None -> failwith <| sprintf "Unexpected var type returned %A" (var.TypeCode)
-         
 
+    
     type ``Operator tests``() =
 
         [<Fact>]
@@ -162,7 +162,7 @@ module EvaluatorTests =
             " |> should equal 70.0
 
         [<Fact>]
-        let ``Stdev test``() =
+        let ``Multi step test using array operations``() =
             evalNum @"
                 # data
                 let x = array(1.2, 2.3, 3.4, 5.6);
@@ -174,3 +174,26 @@ module EvaluatorTests =
                 # return stdev as result
                 stdev
             " |> should (equalWithin 0.001) 1.8786
+
+        [<Fact>]
+        let ``Can map array using anonymous expression``() =
+            evalNum @"
+                let data = {1, 2, 3, 4, 5, 6};
+                let doubled = map(data, {item0 * 2});
+                let ave = sum(doubled) / size(doubled);
+                ave
+            " |> should equal (42.0 / 6.0)
+
+        [<Fact>]
+        let ``Can filter array``() =
+            let result = parseAndEvalAll @"
+                let data = {1, 2, 3, 4, 5, 6};
+                let evens = filter(data, {item % 2 = 0});
+                evens"
+
+            let da, _ = result.ToDoubleArrayWithKnockOut()
+            Assert.Equal(da, [| 2.0; 4.0; 6.0 |] :> IEnumerable<float>)
+
+        let ``Filter propagates ko states``() =
+            
+            
