@@ -72,8 +72,8 @@ type ScriptFunction(path:string,
             VariableConverter.ConvertFrom(res)
         elif objType = typeof<PythonTuple> then
             convertPythonSeq (res :?> PythonTuple)
-        elif objType = typeof<IronPython.Runtime.List> then
-            convertPythonSeq (res :?> IronPython.Runtime.List)
+        elif objType = typeof<IronPython.Runtime.PythonList> then
+            convertPythonSeq (res :?> IronPython.Runtime.PythonList)
         else
             VariableFactory.MakeError(sprintf "Incompatible type returned from script function: %s" (objType.FullName))
 
@@ -142,7 +142,7 @@ module public ScriptLoader =
             Seq.empty
         else
             let pyOptions = new Dictionary<string, obj>()
-            pyOptions.["DivisionOptions"] <- PythonDivisionOptions.New;
+            //pyOptions.["DivisionOptions"] <- Pythondi.New;
 
 #if DEBUG
             pyOptions.["Debug"] <- box true;

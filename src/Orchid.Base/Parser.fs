@@ -178,7 +178,7 @@ module internal Validator =
 
     let validateAssignmentIdentifiers (expressions: Expr list) = 
         // Identifiers must be valid on each assignment
-        let isValidIdent ident = Regex.IsMatch(ident, "^[A-z]{1}[A-z0-9]*$")
+        let isValidIdent (ident:string) = Regex.IsMatch(ident, "^[A-z]{1}[A-z0-9]*$")
         seq {
             for expr in expressions do
                 match expr with
@@ -398,7 +398,10 @@ module public Parser =
 
     /// A regular expression active pattern which returns true when the re matches the given strings
     /// and none when it does not
-    let private (|RegExMatch|_|) re s = if Regex.IsMatch(s, re) then Some(true) else None
+    let private (|RegExMatch|_|) (pattern:string) (s:string) = 
+        if Regex.IsMatch(s, pattern)
+        then Some(true) 
+        else None
 
     /// An object expression used to construct an implementation of an IParseState
     let private createParseState (t: Token list) =

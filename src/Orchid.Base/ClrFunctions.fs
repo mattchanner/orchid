@@ -20,6 +20,7 @@ module ClrFunctions =
         let dirInfo = DirectoryInfo(path)
         if dirInfo.Exists = false then raise (DirectoryNotFoundException(sprintf "%s" path))
         (dirInfo.GetFiles("*.dll"))
+        |> Array.filter (fun (f:FileInfo) -> (f.Name.Contains("Orchid", StringComparison.InvariantCultureIgnoreCase)))
         |> Array.toSeq
 
     /// Returns a sequence of loaded assemblies based off of the given sequence of files to load

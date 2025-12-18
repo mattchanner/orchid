@@ -168,8 +168,8 @@ module EvaluatorTests =
                 let x = array(1.2, 2.3, 3.4, 5.6);
 
                 let ave = Sum(x) / Size(x);
-                let var = Sum((x-ave)^2) / (Size(x)-1);
-                let stdev = (var) ^ 0.5;
+                let variance = Sum((x-ave)^2) / (Size(x)-1);
+                let stdev = (variance) ^ 0.5;
 
                 # return stdev as result
                 stdev
@@ -194,6 +194,5 @@ module EvaluatorTests =
             let da, _ = result.ToDoubleArrayWithKnockOut()
             Assert.Equal(da, [| 2.0; 4.0; 6.0 |] :> IEnumerable<float>)
 
-        let ``Filter propagates ko states``() =
             
             

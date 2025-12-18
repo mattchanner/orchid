@@ -43,52 +43,60 @@ type Logger() =
     /// Logs a warning string produced by invoking f when the configured logger for type t is set 
     /// with warnings enabled
     static member LazyWarn (t: Type, f: unit -> string) =
-        if getLogger(t).IsWarnEnabled then logger.Post(Warn(t, f()))
+        if getLogger(t).IsWarnEnabled then logger.Post(LogMessage.Warn(t, f()))
 
     /// Logs a debug string produced by invoking f when the configured logger for type t is set 
     /// with debug enabled
     static member LazyDebug (t: Type, f: unit -> string) =
-        if getLogger(t).IsDebugEnabled then logger.Post(Debug(t, f()))
+        if getLogger(t).IsDebugEnabled then logger.Post(LogMessage.Debug(t, f()))
 
     /// Logs an error string produced by invoking f when the configured logger for type t is set 
     /// with errors enabled
     static member LazyError (t: Type, f: unit -> string) =
-        if getLogger(t).IsErrorEnabled then logger.Post(Error(t, f()))
+        if getLogger(t).IsErrorEnabled then logger.Post(LogMessage.Error(t, f()))
 
     /// Logs an info string produced by invoking f when the configured logger for type t is set 
     /// with info enabled
     static member LazyInfo (t: Type, f: unit -> string) =
-        if getLogger(t).IsInfoEnabled then logger.Post(Info(t, f()))
+        if getLogger(t).IsInfoEnabled then logger.Post(LogMessage.Info(t, f()))
 
     /// Logs a formatted warning message
-    static member WarnF (t: Type, format:string, [<ParamArray>] args: obj[]) = logger.Post(WarnF(t, format, args))
+    static member WarnF (t: Type, format:string, [<ParamArray>] args: obj[]) : unit = 
+        logger.Post(LogMessage.WarnF(t, format, args))
 
     /// Logs a warning message
-    static member Warn (t: Type, msg:string) = logger.Post(Warn(t, msg))
+    static member Warn (t: Type, msg:string)  : unit = 
+        logger.Post(LogMessage.Warn(t, msg))
     
     /// Logs a formatted debug message
-    static member DebugF (t: Type, format:string, [<ParamArray>] args: obj[]) = logger.Post(DebugF(t, format, args))
+    static member DebugF (t: Type, format:string, [<ParamArray>] args: obj[]) : unit = 
+        logger.Post(LogMessage.DebugF(t, format, args))
     
     /// Logs a debug message
-    static member Debug (t: Type, msg:string) = logger.Post(Debug(t, msg))
+    static member Debug (t: Type, msg:string) : unit = 
+        logger.Post(LogMessage.Debug(t, msg))
     
     /// Logs a formatted info message
-    static member InfoF (t: Type, format:string, [<ParamArray>] args: obj[]) = logger.Post(InfoF(t, format, args))
+    static member InfoF (t: Type, format:string, [<ParamArray>] args: obj[]) = 
+        logger.Post(LogMessage.InfoF(t, format, args))
 
     /// Logs an info message
-    static member Info (t: Type, msg:string) = logger.Post(Info(t, msg))
+    static member Info (t: Type, msg:string): unit = 
+        logger.Post(LogMessage.Info(t, msg))
 
     /// Logs a formatted error message
-    static member ErrorF (t: Type, format:string, [<ParamArray>] args: obj[]) = logger.Post(ErrorF(t, format, args))
+    static member ErrorF (t: Type, format:string, [<ParamArray>] args: obj[]): unit = 
+        logger.Post(LogMessage.ErrorF(t, format, args))
     
     /// Logs an error message
-    static member Error (t: Type, msg:string) = logger.Post(Error(t, msg))
+    static member Error (t: Type, msg:string): unit = 
+        logger.Post(LogMessage.Error(t, msg))
 
     /// Logs an exception
-    static member Error (t: Type, ex:Exception) = logger.Post(Error(t, ex.ToString()))
+    static member Error (t: Type, ex:Exception) = logger.Post(LogMessage.Error(t, ex.ToString()))
 
     /// Cancels the logger
-    static member Cancel() = logger.Post(Cancel)
+    static member Cancel() = logger.Post(LogMessage.Cancel)
 
 module Logging =
     
