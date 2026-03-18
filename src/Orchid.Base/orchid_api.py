@@ -1,6 +1,13 @@
-﻿from Orchid.TypeSystem import IVariable
+# Orchid Python API for pythonnet
+# This module provides the Python interface for creating Orchid functions
+
+import clr
+clr.AddReference("Orchid.Base")
+
+from Orchid.TypeSystem import IVariable
 from Orchid.Runtime import ScriptFunction
 from orchid import runtime, functions
+
 
 class VariableWrapper(object):
     """ Wrapper type for instances of IVariable. """
@@ -11,80 +18,75 @@ class VariableWrapper(object):
 
     def is_error(self):
         """ Returns a value indicating whether this variable represents an error. """
-        return IVariable.IsError.GetValue(self._var)
+        return self._var.IsError
 
     def type_code(self):
         """ Returns the native type for this variable. """
-        return IVariable.TypeCode.GetValue(self._var)
+        return self._var.TypeCode
 
     def __len__(self):
         """ Gets the length of the variable. """
-        return IVariable.Length.GetValue(self._var)
+        return self._var.Length
 
     def is_excluded(self, index):
         """ Returns a value indicating whether the value at the given index is excluded. """
-        return IVariable.IsExcluded(self._var, index)
+        return self._var.IsExcluded(index)
 
     def is_included(self, index):
         """ Returns a value indicating whether the value at the given index is included. """
-        return IVariable.IsIncluded(self._var, index)
+        return self._var.IsIncluded(index)
 
     def ko_state(self, index):
         """ Ko state at the given index. """
-        return IVariable.KoState(self._var, index)
+        return self._var.KoState(index)
 
     def is_auto_excluded(self, index):
         """ Returns a value indicating whether the value at the given index is automatically excluded. """
-        return IVariable.IsAutoExcluded(self._var, index)
+        return self._var.IsAutoExcluded(index)
 
     def is_scalar(self):
         """ Returns a value indicating whether this variable represents a scalar. """
-        return IVariable.IsScalar.GetValue(self._var)
+        return self._var.IsScalar
 
     def is_vector(self):
         """ Returns a value indicating whether this variable represents a vector. """
-        return IVariable.IsVector.GetValue(self._var)
+        return self._var.IsVector
 
-    def as_string_value(self, index):
+    def as_string_value(self, index=0):
         """ Returns a string value for the given index. """
-        return IVariable.AsStringValue(self._var, index)
-    
-    def as_double_value(self, index):
-        """ Returns a double value for the given index. """
-        return IVariable.AsDoubleValue(self._var, index)
+        return self._var.AsStringValue(index)
 
-    def as_bool_value(self, index):
+    def as_double_value(self, index=0):
+        """ Returns a double value for the given index. """
+        return self._var.AsDoubleValue(index)
+
+    def as_bool_value(self, index=0):
         """ Returns a bool value for the given index. """
-        return IVariable.AsBoolValue(self._var, index)
+        return self._var.AsBoolValue(index)
 
     def variable_at(self, index):
         """ Constructs a variable to represent data at the given index. """
-        return VariableWrapper.wrap(IVariable.VariableAt(self._var, index))
+        return VariableWrapper.wrap(self._var.VariableAt(index))
 
-    def unwrap(self): 
+    def unwrap(self):
         """ Unwraps the variable. """
         return self._var
 
     @staticmethod
     def unwrap_all(all):
         """ Unwraps a sequence of wrapped variables, returning the result as a new list. """
-        unwrapped = []
-        for wrapper in all:
-            unwrapped.append(wrapper.unwrap())
-        return unwrapped
+        return [wrapper.unwrap() for wrapper in all]
 
     @staticmethod
     def wrap(var):
         """ Wraps an instance of an IVariable. """
         return VariableWrapper(var)
-    
+
     @staticmethod
     def wrap_all(vars):
         """ Wraps a sequence of variables into a list of wrappers"""
-        wrappers = []
-        for var in vars:
-            wrappers.append(VariableWrapper.wrap(var))
-        return wrappers
+        return [VariableWrapper.wrap(var) for var in vars]
+
 
 class PythonFunction(ScriptFunction):
 
@@ -92,8 +94,8 @@ class PythonFunction(ScriptFunction):
         """ Constructs a new instance of a python function. """
         instance = ScriptFunction.__new__(cls, path, name, category, comment, False, "", returnTypeAsString, removeKoPoints)
         instance.func = func
-        for nm, type in parameters:
-            instance.AddParameter(nm, type)
+        for nm, param_type in parameters:
+            instance.AddParameter(nm, param_type)
         return instance
 
     def Execute(self, args):
@@ -118,18 +120,19 @@ class PythonFunction(ScriptFunction):
             return self.ExecuteExternal(runtime.Environment, attr, *args)
         return func
 
+
 def build(func, name, group, parameters, return_type, source_file="", removeKoPoints=False):
     """ Responsible for the construction and registration of an Orchid function. """
-    pf = PythonFunction
-    pyfunc = PythonFunction(func, 
-                            source_file, 
-                            name, 
-                            group, 
-                            func.__doc__, 
-                            return_type, 
-                            parameters, 
+    pyfunc = PythonFunction(func,
+                            source_file,
+                            name,
+                            group,
+                            func.__doc__,
+                            return_type,
+                            parameters,
                             removeKoPoints)
     functions.Add(pyfunc)
+
 
 def register(function):
     """ Registers a single function with Orchid."""
@@ -140,13 +143,15 @@ def register(function):
 
     functions.Add(function)
 
-def registerFunctions(*functions):
+
+def registerFunctions(*funcs):
     """ Registers each supplied function with Orchid.
 
     The function in this case is added to the Statistics collection
     """
-    for function in functions:
+    for function in funcs:
         register(function)
+
 
 def orchidEval(expression):
     """ This function uses Orchid to evaluate the given string expression.

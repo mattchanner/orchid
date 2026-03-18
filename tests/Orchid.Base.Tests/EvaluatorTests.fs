@@ -194,5 +194,52 @@ module EvaluatorTests =
             let da, _ = result.ToDoubleArrayWithKnockOut()
             Assert.Equal(da, [| 2.0; 4.0; 6.0 |] :> IEnumerable<float>)
 
-            
-            
+    type ``Edge case tests``() =
+
+        [<Fact>]
+        let ``Division by zero returns infinity``() =
+            let result = parseAndEvalAll "1 / 0"
+            result.AsDoubleValue(0).Value |> should equal System.Double.PositiveInfinity
+
+        [<Fact>]
+        let ``Parsing errors return error variable``() =
+            let result = evalStr environment "1 ++ 2"
+            result.IsError |> should be True
+
+        [<Fact>]
+        let ``Empty array filter returns empty result``() =
+            let result = parseAndEvalAll @"
+                let data = array(1);
+                let empty = filter(data, {item > 100});
+                empty"
+            result.Length |> should equal 0
+
+        [<Fact>]
+        let ``Map with single element array``() =
+            let result = parseAndEvalAll @"
+                let data = array(5);
+                let doubled = map(data, {item0 * 2});
+                doubled"
+            result.Length |> should equal 1
+            result.AsDoubleValue(0).Value |> should equal 10.0
+
+        [<Fact>]
+        let ``Unary minus on number``() =
+            evalNum "-5" |> should equal -5.0
+            evalNum "--5" |> should equal 5.0
+
+        [<Fact>]
+        let ``Nested parentheses``() =
+            evalNum "((((1 + 2))))" |> should equal 3.0
+
+        [<Fact>]
+        let ``Boolean not operator``() =
+            evalBool "not(true)" |> should be False
+            evalBool "not(false)" |> should be True
+            evalBool "not(1 > 2)" |> should be True
+
+        [<Fact>]
+        let ``If with nested conditions``() =
+            evalNum "if(if(true, true, false), 1, 2)" |> should equal 1.0
+            evalNum "if(if(false, true, false), 1, 2)" |> should equal 2.0
+

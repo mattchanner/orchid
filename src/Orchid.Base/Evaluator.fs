@@ -18,11 +18,17 @@ module public Evaluator =
     // Ensures that all boolean values are represented by the same immutable instance
     let private makeBool value = if value then True else False
 
-    // Conversion to bool option
-    let private bool (v:IVariable) =
+    // Conversion to bool, returning None if conversion fails
+    let private tryBool (v:IVariable) =
         match v.AsBoolValue(0) with
+        | Some(b) -> Some(b)
+        | _ -> None
+
+    // Conversion to bool with default false for errors
+    let private bool (v:IVariable) =
+        match tryBool v with
         | Some(b) -> b
-        | _ -> failwith "Invalid variable for bool"
+        | None -> false
 
     /// Tests that all supplied inputs are of equal length
     let private allInputsHaveEqualLength (inputs: IVariable list) =
@@ -145,10 +151,12 @@ module public Evaluator =
 
             // foreach expects at least one input and a final anonymous function
             let argLen = args.Length
-            let inputs = [for i in 0 .. (argLen - 2) -> List.item i args] |> List.map (eval env)
-            let block = (List.item (argLen - 1) args)
-
-            evalForEach inputs block env
+            if argLen < 2 then
+                VariableFactory.MakeError("foreach requires at least two arguments")
+            else
+                let inputs = args |> List.take (argLen - 1) |> List.map (eval env)
+                let block = args |> List.last
+                evalForEach inputs block env
 
         // Filter function expects 2 arguments - first is a list, second is an expression to apply 
         // to each item
@@ -224,11 +232,11 @@ module public Evaluator =
         if not allEqual then VariableFactory.MakeError("Lists must be of equal size") else
         
         // Create an array of variables to represent each row in the input table
+        let inputArr = List.toArray inputs
         let slices = seq { for y in 0 .. (numRows - 1) do
-                            yield [| 
-                                for x in 0 .. (numCols - 1) -> 
-                                    (List.item x inputs) 
-                                        |> (fun v -> v.VariableAt(y)) |] }
+                            yield [|
+                                for x in 0 .. (numCols - 1) ->
+                                    inputArr.[x].VariableAt(y) |] }
         
         slices 
             |> Seq.map (evalRow block env)
@@ -237,27 +245,33 @@ module public Evaluator =
     /// Evaluates a list of expressions
     [<CompiledName("Eval")>]
     let evalAll (env:IEnvironment) (expressions: Expr list) =
-        
+
         // Create a new environment with a top level local scope to handle local assignments
         let scopedEnv = Scope.CreateLocalScope(env, (Scope.CreateInMemoryScope()), (env.Scope))
 
-        // Create an array of evaluation results, so that the last one can be returned 
+        // Create an array of evaluation results, so that the last one can be returned
         // (all other evaluations must be assignments to local variables)
         let vars = [|for expr in expressions -> eval scopedEnv expr|]
 
-        vars.[vars.Length - 1]
+        if vars.Length = 0 then
+            VariableFactory.MakeError("No expressions to evaluate")
+        else
+            vars.[vars.Length - 1]
 
     /// Evaluates a string expression
     [<CompiledName("Eval")>]
     let evalStr (env:IEnvironment) (expr:string) =
-        
+
         Orchid.Logger.DebugF(typeof<Evaluator'>, "Evaluating expression: '{0}'", expr)
 
         let result = Parser.parseString expr env
         if not (result.Errors.IsEmpty) then
-            failwith "Errors found during parsing of the input expression"
+            let errorMessages = result.Errors |> List.map (fun e -> e.Message) |> String.concat "; "
+            VariableFactory.MakeError(sprintf "Errors found during parsing: %s" errorMessages)
+        elif result.Expressions.IsEmpty then
+            VariableFactory.MakeError("No expressions found in input")
         elif result.Expressions.Length > 1 then
             let vars = [|for expr in result.Expressions -> eval env expr|]
             vars.[vars.Length - 1]
         else
-            eval env (List.item 0 (result.Expressions))
+            eval env (List.head result.Expressions)

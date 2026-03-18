@@ -93,6 +93,6 @@ tests/
 ## Dependencies
 
 - .NET 10.0, F# 10.0.101
-- IronPython 3.4.2 (Python integration)
+- pythonnet 3.0.5 (Python integration - requires Python 3.12 installed)
 - log4net 3.2.0 (async logging)
 - xUnit + FsUnit (testing)

@@ -261,12 +261,12 @@ module ErrorCodes =
 
 | # | Issue | Status | Notes |
 |---|-------|--------|-------|
-| 1 | Unsafe List Access | Open | |
-| 2 | Unhandled Failwith | Open | |
-| 3 | Missing Test Coverage | Open | |
+| 1 | Unsafe List Access | Done | Replaced List.item with List.take/List.last/List.tryItem/Array indexing |
+| 2 | Unhandled Failwith | Done | Changed to return error variables instead of throwing |
+| 3 | Missing Test Coverage | Partial | Added 8 edge case tests (division by zero, empty arrays, nested conditions, etc.) |
 | 4 | Parser-Evaluator Coupling | Open | |
 | 5 | Mutable Parser State | Open | |
-| 6 | Outdated IronPython | Open | |
+| 6 | Outdated IronPython | Done | Migrated to pythonnet 3.0.5, updated Python files to Python 3 syntax |
 | 7 | Missing Nullable Types | Open | |
 | 8 | Result Type Underused | Open | |
 | 9 | Assertion in Production | Open | |

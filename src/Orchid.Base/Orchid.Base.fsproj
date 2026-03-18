@@ -32,7 +32,7 @@
   <ItemGroup />
 
   <ItemGroup>
-    <PackageReference Include="IronPython" Version="3.4.2" />
+    <PackageReference Include="pythonnet" Version="3.0.5" />
     <PackageReference Include="log4net" Version="3.2.0" />
   </ItemGroup>
 

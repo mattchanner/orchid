@@ -498,11 +498,10 @@ module public Parser =
     /// Produced a foreach expression from the given expression list
     let private parseForEach name ps exprs token =
         let len = List.length exprs
-        if len < 2 then 
+        if len < 2 then
             failAndReturn ps IncorrectNumberOfArgs (sprintf "Incorrect number of arguments to %s" name) token
         else
-            let args = [for i in 0 .. (len - 2) -> List.item i exprs]
-            let last = List.item (len - 1) exprs
+            let last = List.last exprs
             if not (isAnon last) then
                 failAndReturn ps IncorrectArgType (sprintf "Incorrect arguments to %s" name) token
             else
@@ -527,10 +526,11 @@ module public Parser =
                                            "filter",  parseFilter])
 
     /// Replaces the right hand side of a binary expression with the new expression
+    /// Returns true if successful, false if bin is not a BinaryOperator
     let private replaceBinRight bin newExpr =
         match bin with
-        | BinaryOperator(_, _, right, _) -> right := newExpr
-        | _ -> failwith "Not a binary operator"
+        | BinaryOperator(_, _, right, _) -> right := newExpr; true
+        | _ -> false
 
     // Parses a variable.  The expected current token at point of entry is a '[' char, So this
     // method will advance over, and expect an identifier followed by a closing ']', reporting
@@ -716,10 +716,12 @@ module public Parser =
 
     /// Parses a binary expression starting with the given operator.
     and private parseBinary (op: Op) (ps:IParseState): MutableExpr option =
-        let priorTokenLen = List.length ps.PreviousTokens
-        if ps.Stack.IsEmpty || 
-           (priorTokenLen >= 2 && (Tokens.isComma (List.item 1 ps.PreviousTokens) 
-           || Precedence.ofToken (List.item 1 ps.PreviousTokens) > 0)) then
+        let priorSecondToken = List.tryItem 1 ps.PreviousTokens
+        let isPriorCommaOrOperator =
+            match priorSecondToken with
+            | Some(tok) -> Tokens.isComma tok || Precedence.ofToken tok > 0
+            | None -> false
+        if ps.Stack.IsEmpty || isPriorCommaOrOperator then
 
             ps.Advance() |> ignore
             parseExpr ps |> ignore
@@ -756,7 +758,9 @@ module public Parser =
                         while ps.Current.IsSome && (Precedence.ofToken (ps.Current.Value)) > (Precedence.ofOp op) do
                             parseExpr ps |> ignore
 
-                        replaceBinRight binary (ps.PopExpr()).Value
+                        match ps.PopExpr() with
+                        | Some(rhs) -> replaceBinRight binary rhs |> ignore
+                        | None -> ()
             None
     
     /// Performs a parse on a list of tokens            
