@@ -1,4 +1,4 @@
-﻿namespace Orchid.Expressions
+namespace Orchid.Expressions
 
 open System.Collections.Generic
 open System.Text.RegularExpressions
@@ -12,8 +12,8 @@ module internal Validator =
     type private BI = {count: int; tok: Token}
 
     /// Active patter to match on literals
-    let (|AnyLiteral|_|) (token:Token) = 
-        match token with 
+    let (|AnyLiteral|_|) (token:Token) =
+        match token with
         | Token.Bool(_, _) | Token.Number(_, _) | Token.String(_, _, _) -> Some(true)
         | _ -> None
 
@@ -21,21 +21,21 @@ module internal Validator =
     let (|NoOps|_|) token = match token with | Comment(_, _) -> Some(true) | _ -> None
 
     /// Active pattern to match on open brackets
-    let (|OpenBrackets|_|) token = 
-        match token with 
+    let (|OpenBrackets|_|) token =
+        match token with
         | LParen(_) | LCurly(_) | LSquare(_) -> Some(true)
         | _ -> None
 
     /// Active pattern to match on close brackets
-    let (|CloseBrackets|_|) token = 
-        match token with 
-        | RParen(_) | RCurly(_) | RSquare(_) -> Some(true) 
+    let (|CloseBrackets|_|) token =
+        match token with
+        | RParen(_) | RCurly(_) | RSquare(_) -> Some(true)
         | _ -> None
 
     /// Active pattern to match on operators
-    let (|Operators|_|) token = 
-        match token with 
-        | Token.Operator(_, _) -> Some(true) 
+    let (|Operators|_|) token =
+        match token with
+        | Token.Operator(_, _) -> Some(true)
         | _ -> None
 
     let (|SemiColon|_|) token =
@@ -44,9 +44,9 @@ module internal Validator =
         | _ -> None
 
     /// Active pattern to match on unary operators
-    let (|Unary|_|) token = 
-        match token with 
-        | Operator(op, _) when op = Op.Minus -> Some(true) 
+    let (|Unary|_|) token =
+        match token with
+        | Operator(op, _) when op = Op.Minus -> Some(true)
         | _ -> None
 
     let (|LetBinding|_|) token =
@@ -64,11 +64,11 @@ module internal Validator =
 
     /// A validator to iterate over the tokens looking for invalid token pairs
     let private invalidSequenceValidator (tokens:Token list) =
-        
+
         let rec walk (head:Token) (tail: Token list) (acc: ParseError list) =
 
             if tail.IsEmpty then acc else
-        
+
             let next = tail.Head
 
             match head with
@@ -79,17 +79,17 @@ module internal Validator =
 
             | Token.Comma(tl) ->
                 match next with
-                | Identifiers(true) 
-                | NoOps(true) 
-                | OpenBrackets(true) 
-                | AnyLiteral(true) 
+                | Identifiers(true)
+                | NoOps(true)
+                | OpenBrackets(true)
+                | AnyLiteral(true)
                 | Unary(true) -> walk (tail.Head) (tail.Tail) acc
                 | _ -> walk (tail.Head) (tail.Tail) ((mkError head next)::acc)
-            
+
             | Token.Identifier(_, _) ->
                 match next with
-                | NoOps(true) 
-                | LParen(_) 
+                | NoOps(true)
+                | LParen(_)
                 | Comma(_)
                 | LParen(_)
                 | Operators(true)
@@ -97,15 +97,15 @@ module internal Validator =
                 | LetBinding(true)
                 | CloseBrackets(true)-> walk (tail.Head) (tail.Tail) acc
                 | _ -> walk (tail.Head) (tail.Tail) ((mkError head next)::acc)
-            
+
             | Token.Operator(op, _) ->
                 match next with
-                | OpenBrackets(true) 
-                | AnyLiteral(true) 
-                | Identifiers(true) 
+                | OpenBrackets(true)
+                | AnyLiteral(true)
+                | Identifiers(true)
                 | Unary(true) ->  walk (tail.Head) (tail.Tail) acc
                 | _ -> walk (tail.Head) (tail.Tail) ((mkError head next)::acc)
-            
+
             | CloseBrackets(true) ->
                 match next with
                 | NoOps(true)
@@ -116,7 +116,7 @@ module internal Validator =
                 | SemiColon(_)
                 | EOF(_) ->  walk (tail.Head) (tail.Tail) acc
                 | _ -> walk (tail.Head) (tail.Tail) ((mkError head next)::acc)
-            
+
             | OpenBrackets(true) ->
                 match next with
                 | Unary(true)
@@ -133,7 +133,7 @@ module internal Validator =
 
     /// Bracket counter to ensure that all open brackets are closed
     let private bracketValidator (tokens:Token list) =
-        
+
         /// iterate over all tokens incrementing and decrementing the bracket counts
         /// A final result <> 0 indicates an unbalanced bracket
         let rec validate (ls:Token list) (square:BI) (curly:BI) (round:BI): (BI * BI * BI) =
@@ -150,21 +150,21 @@ module internal Validator =
         /// Helper to construct an EOF token to be used as a seed
         let inline mkSeed() = EOF({Line = -1; Column = -1; Range = 0 })
 
-        let (square, curly, round) = 
+        let (square, curly, round) =
             validate tokens {count = 0; tok = mkSeed()} {count = 0; tok = mkSeed()} {count = 0; tok = mkSeed()}
 
         // return a sequence containing ParseErrors for each of the failed bracket counts
         seq {
             if (square.count <> 0) then
                 yield ParseError(UnmatchedSquareBracket, "Unmatched square bracket", square.tok)
-            if (curly.count <> 0) then 
+            if (curly.count <> 0) then
                 yield ParseError(UnmatchedCurlyBracket, "Unmatched curly bracket", curly.tok)
             if (round.count <> 0) then
                 yield ParseError(UnmatchedRoundBracket, "Unmatched round bracket",  round.tok)
         }
-    
+
     /// Ensures local variable names are unique
-    let validateUniqueAssignmentIdentifiers (expressions: Expr list) = 
+    let validateUniqueAssignmentIdentifiers (expressions: Expr list) =
         let ident expr =
             match expr with
             | Assign(Identifier(name,_), _, _) -> Some(name, expr)
@@ -176,7 +176,7 @@ module internal Validator =
                     yield (ParseError(DuplicateAssignment, sprintf "Duplicate local variable %s" ident, expr.Token))
         }
 
-    let validateAssignmentIdentifiers (expressions: Expr list) = 
+    let validateAssignmentIdentifiers (expressions: Expr list) =
         // Identifiers must be valid on each assignment
         let isValidIdent (ident:string) = Regex.IsMatch(ident, "^[A-z]{1}[A-z0-9]*$")
         seq {
@@ -184,19 +184,19 @@ module internal Validator =
                 match expr with
                 | Assign(Identifier(name, _), _, _) ->
                     if not (isValidIdent name) then
-                        yield (ParseError(InvalidAssignmentIdentifier, sprintf "%s is an invalid identifier" name, (expr.Token))) 
+                        yield (ParseError(InvalidAssignmentIdentifier, sprintf "%s is an invalid identifier" name, (expr.Token)))
                 | _ -> () }
-                
+
     /// Validates a list of expressions to ensure that the it is structured correctly
     /// i.e. single statements must be a non assignment expression
     ///      multiple statements must contain assignments followed by a final expression (the result)
     let statementValidator (expressions: Expr list) =
 
-        let isAssignment expr = 
-            match expr with 
-            | Assign(Identifier(name, _), right, _) -> true 
+        let isAssignment expr =
+            match expr with
+            | Assign(Identifier(name, _), right, _) -> true
             | _ -> false
-        
+
         // Returns a tuple of the number of assign expressions * number of non assign expressions
         let countAssignments arr =
             let assignments = Array.filter isAssignment arr
@@ -209,16 +209,16 @@ module internal Validator =
         let assignCount, exprCount = countAssignments exprArray
 
         if exprCount = 0 then
-            Seq.singleton (ParseError(ExpressionHasNoReturnValue, 
-                                      "Expression does not contain a return value", 
+            Seq.singleton (ParseError(ExpressionHasNoReturnValue,
+                                      "Expression does not contain a return value",
                                       (expressions.Head.Token)))
         elif exprCount > 1 then
-            Seq.singleton (ParseError(ExpressionHasMultipleReturnValues, 
-                                      "Expression can contain only a single return value", 
+            Seq.singleton (ParseError(ExpressionHasMultipleReturnValues,
+                                      "Expression can contain only a single return value",
                                       (expressions.Head.Token)))
         elif assignCount > 0 && (isAssignment exprArray.[exprArray.Length - 1]) then
-            Seq.singleton (ParseError(FinalExpressionMustBeResult, 
-                                      "Final expression in statement must be the result", 
+            Seq.singleton (ParseError(FinalExpressionMustBeResult,
+                                      "Final expression in statement must be the result",
                                       (expressions.Head.Token)))
         else
             Seq.empty
@@ -231,13 +231,13 @@ module internal Validator =
             | Expr.And(ls, _) -> validateList ls env acc
             | Expr.AnonymousFunc(ls, _) -> validateList ls env acc
             | Expr.Array(ls, _) -> validateList ls env acc
-            | Expr.BinaryOperator(left, _, right, _) -> 
+            | Expr.BinaryOperator(left, _, right, _) ->
                 validateInner left env acc
                 validateInner right env acc
             | Expr.Bool(_, _)-> ()
             | Expr.Filter(expr, filter, _) ->  (validateInner expr env acc); (validateInner filter env acc)
             | Expr.ForEach(ls, _) -> validateList ls env acc
-            | Expr.Function(Expr.Identifier(ident, token), ls, _) -> 
+            | Expr.Function(Expr.Identifier(ident, token), ls, _) ->
                 if not (env.Functions.Exists(ident)) then
                     acc.Add(ParseError(UnknownFunction, (sprintf "Unknown function '%s'" ident), token)) |> ignore
             | Expr.IfThenElse(exp1, exp2, exp3, _) ->
@@ -250,17 +250,17 @@ module internal Validator =
             | Expr.Parens(exp, _) -> validateInner exp env acc
             | Expr.UnaryOperator(_, exp, _) -> validateInner exp env acc
             | _ -> ()
-        
-        let errors = new ResizeArray<ParseError>()
-        
-        validateList expressions env errors   
 
-        // upcast to a seq      
-        errors :> seq<ParseError>        
+        let errors = new ResizeArray<ParseError>()
+
+        validateList expressions env errors
+
+        // upcast to a seq
+        errors :> seq<ParseError>
 
     /// Performs validation on the initial token list
     let validateTokens (tokens:Token list) =
-        tokens 
+        tokens
         |> bracketValidator
         |> Seq.append (invalidSequenceValidator (tokens))
         |> List.ofSeq
@@ -269,11 +269,12 @@ module internal Validator =
     let validateExpressions (expr: Expr list) (env: IEnvironment) =
         validateFunctions expr env
         |> Seq.append (validateAssignmentIdentifiers expr)
-        |> Seq.append (statementValidator expr)        
+        |> Seq.append (statementValidator expr)
         |> Seq.append (validateUniqueAssignmentIdentifiers expr)
 
 /// The internal mutable version of the expression tree.  This is needed as some operations
-/// require AST rewriting via ref cells which should only be supported during parsing
+/// require AST rewriting via ref cells which should only be supported during parsing.
+/// Note: BinaryOperator uses Ref for left/right to support operator precedence rewriting.
 type private MutableExpr =
     | Assign            of MutableExpr * MutableExpr * Token
     | Array             of MutableExpr list * Token
@@ -318,50 +319,68 @@ type private MutableExpr =
         | Macro(_, t)                -> t
         | Invalid(t)                 -> t
 
-/// Represents the state held during a parse operation
-type private IParseState =
-    
-    /// Adds a constructed error to the list
-    abstract member AddError: ParseError -> unit
+/// Immutable parse state record - replaces mutable IParseState interface
+type private ParseState = {
+    Current: Token option
+    Tokens: Token list
+    Stack: MutableExpr list
+    PreviousTokens: Token list
+    Errors: ParseError list
+}
 
-    /// Adds an error to the list of the form (code * message * token)
-    abstract member AddError: int * string * Token -> unit
+/// Operations on ParseState - all return new state without mutation
+module private ParseState =
 
-    /// The error list
-    abstract member Errors: ParseError list with get
+    /// Create initial parse state from token list
+    let create (tokens: Token list) : ParseState =
+        { Current = None
+          Tokens = tokens
+          Stack = []
+          PreviousTokens = []
+          Errors = [] }
 
-    /// Advances to the next token, returning false if there are no more tokens left on the stack
-    abstract member Advance: unit -> bool
+    /// Advance to the next token, returns (newState, didAdvance)
+    let advance (state: ParseState) : ParseState * bool =
+        match state.Tokens with
+        | token :: rest ->
+            { state with
+                Current = Some token
+                Tokens = rest
+                PreviousTokens = token :: state.PreviousTokens }, true
+        | [] ->
+            { state with Current = None }, false
 
-    // Returns the current token as an option
-    abstract member Current: Token option with get
+    /// Push an expression onto the stack
+    let pushExpr (expr: MutableExpr) (state: ParseState) : ParseState =
+        { state with Stack = expr :: state.Stack }
 
-    // Returns the current list of tokens
-    abstract member Tokens: Token list with get
+    /// Pop an expression from the stack, returns (newState, poppedExpr)
+    let popExpr (state: ParseState) : ParseState * MutableExpr option =
+        match state.Stack with
+        | expr :: rest -> { state with Stack = rest }, Some expr
+        | [] -> state, None
 
-    /// Returns the expression stack
-    abstract member Stack: MutableExpr list with get
+    /// Peek at the top expression without modifying state
+    let peekExpr (state: ParseState) : MutableExpr option =
+        List.tryHead state.Stack
 
-    /// Pops an expression off of the stack, returning the result as an option
-    abstract member PopExpr: unit -> MutableExpr option
+    /// Peek at the next token without modifying state
+    let peekToken (state: ParseState) : Token option =
+        List.tryHead state.Tokens
 
-    /// Pushes a new expression onto the stack
-    abstract member PushExpr: MutableExpr -> unit 
+    /// Add an error to the state
+    let addError (error: ParseError) (state: ParseState) : ParseState =
+        { state with Errors = error :: state.Errors }
 
-    /// Peeks at the expression at the head of the stack, returning the result as an Option<MutableExpr>
-    abstract member PeekExpr: unit -> MutableExpr option
+    /// Add an error with code, message, and token
+    let addErrorWith (code: int) (msg: string) (token: Token) (state: ParseState) : ParseState =
+        addError (ParseError(code, msg, token)) state
 
-    /// Peeks at the token at the head of the stack, returning the result as an Option<Token>
-    abstract member PeekToken: unit -> Token option
-
-    /// Returns a list of prior tokens, enabling look backs
-    abstract member PreviousTokens: unit -> Token list with get
-    
 module public Parser =
 
-    /// This function transforms the MutableExpr hierarchy into a public Expr tree (without any mutable structures)    
+    /// This function transforms the MutableExpr hierarchy into a public Expr tree (without any mutable structures)
     let rec private toPublicAst (stack:MutableExpr list) =
-        
+
         /// Transforms a single MutableExpr into an Expr
         let rec toPublicExpr (mut:MutableExpr) =
             match mut with
@@ -375,7 +394,7 @@ module public Parser =
             | MutableExpr.ForEach(exprs, tok)           -> Expr.ForEach(toPublicAst(exprs), tok)
             | MutableExpr.Function(expr1, exprs, tok)   -> Expr.Function(toPublicExpr(expr1), toPublicAst(exprs), tok)
             | MutableExpr.Identifier(ident, tok)        -> Expr.Identifier(ident, tok)
-            | MutableExpr.IfThenElse(e1, e2, e3, tok)   -> Expr.IfThenElse(toPublicExpr(e1), 
+            | MutableExpr.IfThenElse(e1, e2, e3, tok)   -> Expr.IfThenElse(toPublicExpr(e1),
                                                                            toPublicExpr(e2),
                                                                            toPublicExpr(e3), tok)
             | MutableExpr.Invalid(tok)                  -> Expr.Invalid(tok)
@@ -387,7 +406,7 @@ module public Parser =
             | MutableExpr.Str(value, q, tok)            -> Expr.Str(value, q, tok)
             | MutableExpr.UnaryOperator(op, expr, tok)  -> Expr.UnaryOperator(op, toPublicExpr(expr), tok)
             | MutableExpr.Variable(value, tok)          -> Expr.Variable(value, tok)
-            
+
         and walk (ls:MutableExpr list) (acc:Expr list) =
             match ls with
             | x::xs -> walk xs ((toPublicExpr(x)) :: acc)
@@ -398,299 +417,338 @@ module public Parser =
 
     /// A regular expression active pattern which returns true when the re matches the given strings
     /// and none when it does not
-    let private (|RegExMatch|_|) (pattern:string) (s:string) = 
+    let private (|RegExMatch|_|) (pattern:string) (s:string) =
         if Regex.IsMatch(s, pattern)
-        then Some(true) 
+        then Some(true)
         else None
-
-    /// An object expression used to construct an implementation of an IParseState
-    let private createParseState (t: Token list) =
-
-        let (current: Ref<Token option>) = ref None
-        let (tokens:Ref<Token list>) = ref t
-        let (stack: Ref<MutableExpr list>) = ref []
-        let (prior: Ref<Token list>) = ref []
-        let (errors: Ref<ParseError list>) = ref []
-        { new IParseState with
-            member x.AddError(err:ParseError) = errors := err :: !errors
-            member x.AddError (code, msg, token) = x.AddError(ParseError(code, msg, token))
-            member x.Errors with get() = !errors
-            member x.Current with get() = !current
-            member x.Tokens with get() = !tokens
-            member x.Stack with get() = !stack
-            member x.PushExpr(e:MutableExpr) = stack := (e::!stack)
-            member x.PreviousTokens with get() = !prior
-            member x.PopExpr() = 
-                match x.Stack with
-                | x::xs -> stack := xs; Some(x)
-                | _ -> None
-            member x.PeekToken() =
-                match x.Tokens with
-                | x::xs -> Some(x)
-                | _ -> None
-            member x.PeekExpr() =
-                match x.Stack with
-                | x::xs -> Some(x)
-                | _ -> None
-            member x.Advance() = 
-                match !tokens with
-                | x::xs -> current := Some(x); tokens := xs; prior := x::!prior;  true
-                |_ -> current := None; false }
 
     /// Helper testing for an anonymous method
     let private isAnon expr = match expr with | MutableExpr.AnonymousFunc(_, _) -> true | _ -> false
 
     let private isIdent expr = match expr with | Some(MutableExpr.Identifier(_, _)) -> true | _ -> false
 
-    /// Pushes a new expression onto the stack and advances to the next token
-    let inline private pushExprNoAdvance (ps:IParseState) (expr:MutableExpr) = ps.PushExpr expr; true
+    /// Pushes expression onto stack and advances to next token
+    let private pushExprAndAdvance (expr: MutableExpr) (state: ParseState) : ParseState * bool =
+        let state = ParseState.pushExpr expr state
+        ParseState.advance state
 
-    /// Pushes a new expression onto the stack and advances to the next token
-    let inline private pushExpr (ps:IParseState) (expr:MutableExpr) = ps.PushExpr expr; ps.Advance() |> ignore; true
+    /// Pushes expression onto stack without advancing
+    let private pushExprNoAdvance (expr: MutableExpr) (state: ParseState) : ParseState * bool =
+        ParseState.pushExpr expr state, true
 
-    /// Adds a failed token to the stack
-    let private fail (ps:IParseState) (tok:Token) (code:int) (msg:string) =
-        ps.AddError(ParseError(code, msg, tok))
-        ps.PushExpr(Invalid(tok)); ps.Advance() |> ignore
-        false
+    /// Records an error and pushes Invalid expression
+    let private fail (tok: Token) (code: int) (msg: string) (state: ParseState) : ParseState * bool =
+        let state = ParseState.addError (ParseError(code, msg, tok)) state
+        let state = ParseState.pushExpr (Invalid tok) state
+        let state, _ = ParseState.advance state
+        state, false
 
     /// Produces an And expression from the given expression list
-    let private parseAnd ps exprs token = MutableExpr.And(exprs, token)
-    
+    let private parseAnd state exprs token = MutableExpr.And(exprs, token)
+
     /// Produces an Or expression from the given expression list
-    let private parseOr ps exprs token = MutableExpr.Or(exprs, token)
+    let private parseOr state exprs token = MutableExpr.Or(exprs, token)
 
     /// Adds a parse error to the parse state, and returns an invalid expr
-    let private failAndReturn (ps:IParseState) code msg token =
-        ps.AddError(ParseError(code, msg, token))
-        Invalid(token)
+    let private failAndReturn (state: ParseState) code msg token =
+        ParseState.addError (ParseError(code, msg, token)) state, Invalid(token)
 
     /// Produces the expression list as an if(expr, then, else) block.
-    let private parseIfThenElse ps exprs token =
+    let private parseIfThenElse state exprs token =
         let arr = List.toArray exprs
-        if arr.Length <> 3 then 
-            failAndReturn ps 
-                          IncorrectNumberOfArgs 
-                          "Incorrect number of arguments to if, must be of the form if(test, then, else)" 
+        if arr.Length <> 3 then
+            failAndReturn state
+                          IncorrectNumberOfArgs
+                          "Incorrect number of arguments to if, must be of the form if(test, then, else)"
                           token
         else
-            MutableExpr.IfThenElse(arr.[0], arr.[1], arr.[2], token)
+            state, MutableExpr.IfThenElse(arr.[0], arr.[1], arr.[2], token)
 
     /// Produced a filter expression from the given expression list
-    let private parseFilter ps exprs token =
-        if (List.length exprs) <> 2 then 
-            failAndReturn ps 
-                          IncorrectNumberOfArgs 
-                          "Incorrect number of arguments to filter, must be of the form filter(expr, {filter_func})" 
+    let private parseFilter state exprs token =
+        if (List.length exprs) <> 2 then
+            failAndReturn state
+                          IncorrectNumberOfArgs
+                          "Incorrect number of arguments to filter, must be of the form filter(expr, {filter_func})"
                           token
-        else 
-            match exprs with
-            | [expr1; expr2] when isAnon expr2 -> MutableExpr.Filter(expr1, expr2, token)
-            | _ -> failAndReturn ps IncorrectArgType "Incorrect arguments to filter" token
- 
-    /// Produces an array expression from the inputs
-    let private parseArray ps (exprs: MutableExpr list) token =
-        if exprs.IsEmpty then
-            failAndReturn ps IncorrectNumberOfArgs "Array function must have at least one argument" token
         else
-            MutableExpr.Array(exprs, token)
+            match exprs with
+            | [expr1; expr2] when isAnon expr2 -> state, MutableExpr.Filter(expr1, expr2, token)
+            | _ -> failAndReturn state IncorrectArgType "Incorrect arguments to filter" token
+
+    /// Produces an array expression from the inputs
+    let private parseArray state (exprs: MutableExpr list) token =
+        if exprs.IsEmpty then
+            failAndReturn state IncorrectNumberOfArgs "Array function must have at least one argument" token
+        else
+            state, MutableExpr.Array(exprs, token)
 
     /// Produced a foreach expression from the given expression list
-    let private parseForEach name ps exprs token =
+    let private parseForEach name state exprs token =
         let len = List.length exprs
         if len < 2 then
-            failAndReturn ps IncorrectNumberOfArgs (sprintf "Incorrect number of arguments to %s" name) token
+            failAndReturn state IncorrectNumberOfArgs (sprintf "Incorrect number of arguments to %s" name) token
         else
             let last = List.last exprs
             if not (isAnon last) then
-                failAndReturn ps IncorrectArgType (sprintf "Incorrect arguments to %s" name) token
+                failAndReturn state IncorrectArgType (sprintf "Incorrect arguments to %s" name) token
             else
-                MutableExpr.ForEach(exprs, token)
-    
+                state, MutableExpr.ForEach(exprs, token)
+
     /// Validates and consumes a Not expression
-    let private parseNot ps exprs token =
+    let private parseNot state exprs token =
         if List.length exprs <> 1 then
-            failAndReturn ps IncorrectNumberOfArgs "Incorrect number of arguments to not, expected not(expr)" token
+            failAndReturn state IncorrectNumberOfArgs "Incorrect number of arguments to not, expected not(expr)" token
         else
-            MutableExpr.Not(exprs.Head, token)
+            state, MutableExpr.Not(exprs.Head, token)
 
     /// A map of handlers for named functions that have special consideration inside of the
     /// MutableExpr definition - note that map and foreach and equivalent (curried versions of the same handler)
-    let private funcHandlers = Map.ofList(["and",     parseAnd
-                                           "array",   parseArray
-                                           "or",      parseOr
-                                           "if",      parseIfThenElse
-                                           "not",     parseNot
-                                           "foreach", (parseForEach "foreach")
-                                           "map",     (parseForEach "map")
-                                           "filter",  parseFilter])
+    let private funcHandlers =
+        Map.ofList([
+            "and",     fun state exprs token -> state, parseAnd state exprs token
+            "array",   parseArray
+            "or",      fun state exprs token -> state, parseOr state exprs token
+            "if",      parseIfThenElse
+            "not",     parseNot
+            "foreach", parseForEach "foreach"
+            "map",     parseForEach "map"
+            "filter",  parseFilter
+        ])
 
     /// Replaces the right hand side of a binary expression with the new expression
-    /// Returns true if successful, false if bin is not a BinaryOperator
+    /// Note: This is one place where we still use mutation (Ref) for operator precedence handling
     let private replaceBinRight bin newExpr =
         match bin with
         | BinaryOperator(_, _, right, _) -> right := newExpr; true
         | _ -> false
 
-    // Parses a variable.  The expected current token at point of entry is a '[' char, So this
-    // method will advance over, and expect an identifier followed by a closing ']', reporting
-    // any errors if this condition is not met.
-    let private parseVariable (ps:IParseState) =
-        let next = ps.PeekToken()
-        if next.IsNone then 
-            fail ps ps.Current.Value EndOfStream "Unable to parse variable, end of stream found"
-        else
-            let tokenVal = next.Value
-            match tokenVal with            
-            | Token.Identifier(ident, _) ->
-                ps.Advance() |> ignore
-                let maybeRParen = ps.PeekToken()
-                if maybeRParen.IsSome && (Tokens.isRSquare maybeRParen.Value) then
-                    ps.Advance() |> ignore
-                    Variable(ident, tokenVal) |> pushExpr ps
-                else fail ps tokenVal InvalidVariableDefinition "Invalid variable definition, expected [ ident ]"
-            
-            | _ -> fail ps tokenVal InvalidVariableDefinition "Invalid variable definition, expected [ ident ]"
-
     /// Returns true if the given operator may be a unary operator
-    let private maybeUnary op = 
+    let private maybeUnary op =
         match op with
         | Op.Minus -> true
         | _ -> false
 
+    // Parses a variable.  The expected current token at point of entry is a '[' char
+    let private parseVariable (state: ParseState) : ParseState * bool =
+        let next = ParseState.peekToken state
+        match next with
+        | None ->
+            fail state.Current.Value EndOfStream "Unable to parse variable, end of stream found" state
+        | Some tokenVal ->
+            match tokenVal with
+            | Token.Identifier(ident, _) ->
+                let state, _ = ParseState.advance state
+                let maybeRSquare = ParseState.peekToken state
+                match maybeRSquare with
+                | Some tok when Tokens.isRSquare tok ->
+                    let state, _ = ParseState.advance state
+                    pushExprAndAdvance (Variable(ident, tokenVal)) state
+                | _ ->
+                    fail tokenVal InvalidVariableDefinition "Invalid variable definition, expected [ ident ]" state
+            | _ ->
+                fail tokenVal InvalidVariableDefinition "Invalid variable definition, expected [ ident ]" state
+
     /// The main method for parsing an expression and adding the result to the head of the stack.
     /// Each parse will also advance over the final token matched
-    let rec private parseExpr (ps:IParseState) =
-        if ps.Current.IsNone then false else
-        let expr = 
-            let tok = ps.Current.Value
+    let rec private parseExpr (state: ParseState) : ParseState * bool =
+        match state.Current with
+        | None -> state, false
+        | Some tok ->
             match tok with
-            | Token.Let(_)               -> parseLetBinding ps |> ignore; parseInvocation ps
-            | Token.SemiColon(_)         -> ps.Advance() |> ignore; true
-            | Token.LSquare(_)           -> parseVariable ps |> ignore; parseInvocation ps
-            | Token.Bool(v, _)           -> Bool(v, tok) |> pushExpr ps |> ignore; parseInvocation ps
-            | Token.Identifier(ident, _) -> Identifier(ident, tok) |> pushExpr ps |> ignore; parseInvocation ps
-            | Token.Number(num, _)       -> Num(num, tok)     |> pushExpr ps |> ignore; parseInvocation ps
-            | Token.String(str, qt, _)   -> Str(str, qt, tok) |> pushExpr ps |> ignore; parseInvocation ps
-            | Token.Operator(op, _) 
-                when maybeUnary op       -> parseUnaryOrBinary op ps |> ignore; parseInvocation ps
-            | Token.Operator(op, _)      -> parseBinary op ps |> ignore; parseInvocation ps
-            | Token.LCurly(_)            -> parseCurly ps |> ignore; parseInvocation ps
-            | Token.EOF(_)               -> ps.Advance() |> ignore; false
-            | Token.LParen(_)            -> ps.Advance() |> ignore; parseGroup ps |> ignore; parseInvocation ps
-            | Token.Comment(_, _)        -> ps.Advance() |> ignore; true
-            | _ -> fail ps tok 1 "Unknown token type found during expression parsing"
-        true
+            | Token.Let(_) ->
+                let state = parseLetBinding state
+                parseInvocation state
+            | Token.SemiColon(_) ->
+                let state, _ = ParseState.advance state
+                state, true
+            | Token.LSquare(_) ->
+                let state, _ = parseVariable state
+                parseInvocation state
+            | Token.Bool(v, _) ->
+                let state, _ = pushExprAndAdvance (Bool(v, tok)) state
+                parseInvocation state
+            | Token.Identifier(ident, _) ->
+                let state, _ = pushExprAndAdvance (Identifier(ident, tok)) state
+                parseInvocation state
+            | Token.Number(num, _) ->
+                let state, _ = pushExprAndAdvance (Num(num, tok)) state
+                parseInvocation state
+            | Token.String(str, qt, _) ->
+                let state, _ = pushExprAndAdvance (Str(str, qt, tok)) state
+                parseInvocation state
+            | Token.Operator(op, _) when maybeUnary op ->
+                let state = parseUnaryOrBinary op state
+                parseInvocation state
+            | Token.Operator(op, _) ->
+                let state, _ = parseBinary op state
+                parseInvocation state
+            | Token.LCurly(_) ->
+                let state, _ = parseCurly state
+                parseInvocation state
+            | Token.EOF(_) ->
+                let state, _ = ParseState.advance state
+                state, false
+            | Token.LParen(_) ->
+                let state, _ = ParseState.advance state
+                let state, _ = parseGroup state
+                parseInvocation state
+            | Token.Comment(_, _) ->
+                let state, _ = ParseState.advance state
+                state, true
+            | _ ->
+                fail tok 1 "Unknown token type found during expression parsing" state
 
     /// Parses a grouped expression (MutableExpr.Parens)
-    and private parseGroup (ps:IParseState) =
-        let startToken = ps.Current.Value
-        let mutable id = ps.Current
-        while id.IsSome && not (Tokens.isTerminator id.Value) do
-            parseExpr ps |> ignore
-            id <- ps.Current
-        if ps.Advance() && id.IsNone || not (Tokens.isRParen id.Value) then
-            fail ps startToken UnmatchedRoundBracket "Unmatched round bracket"
-        else
-            let interior = ps.PopExpr()
-            ps.PushExpr (MutableExpr.Parens(ref interior.Value, startToken))
-            true            
+    and private parseGroup (state: ParseState) : ParseState * bool =
+        let startToken = state.Current.Value
 
-    /// Parses the expressions starting with the '{' character.  The result of which
-    /// can be interpreted as either a macro of the form {identifier}, or an anonymous function.
-    /// Extra consideration is made for identifiers that can be treated as indexers in anonymous 
-    /// functions e.g. item or item0, item9 etc.  So {item0} would become an anonymous function 
-    /// instead of a macro expression
-    and private parseCurly (ps:IParseState) =
-        let currentToken = ps.Current.Value
-        let exprs = parseExpressionList ps Tokens.isRCurly
+        let rec loop state =
+            match state.Current with
+            | Some tok when not (Tokens.isTerminator tok) ->
+                let state, _ = parseExpr state
+                loop state
+            | _ -> state
+
+        let state = loop state
+        let finalToken = state.Current
+        let state, _ = ParseState.advance state
+
+        match finalToken with
+        | Some tok when Tokens.isRParen tok ->
+            let state, interior = ParseState.popExpr state
+            match interior with
+            | Some expr ->
+                let state = ParseState.pushExpr (MutableExpr.Parens(ref expr, startToken)) state
+                state, true
+            | None ->
+                fail startToken UnmatchedRoundBracket "Unmatched round bracket" state
+        | _ ->
+            fail startToken UnmatchedRoundBracket "Unmatched round bracket" state
+
+    /// Parses the expressions starting with the '{' character.
+    and private parseCurly (state: ParseState) : ParseState * bool =
+        let currentToken = state.Current.Value
+        let state, exprs = parseExpressionList Tokens.isRCurly state
         match exprs with
         | [MutableExpr.Identifier(ident, t)] ->
-            match ident with 
-            | RegExMatch "item([0-9]*)" r -> MutableExpr.AnonymousFunc(exprs, t) |> pushExprNoAdvance ps
-            | _ -> MutableExpr.Macro((exprs.Head), t) |> pushExprNoAdvance ps
-        | [] -> fail ps currentToken 2 "Anonymous functions must contain at least one expression"
-        | _ -> MutableExpr.AnonymousFunc(exprs, currentToken) |> pushExprNoAdvance ps
+            match ident with
+            | RegExMatch "item([0-9]*)" _ ->
+                pushExprNoAdvance (MutableExpr.AnonymousFunc(exprs, t)) state
+            | _ ->
+                pushExprNoAdvance (MutableExpr.Macro(exprs.Head, t)) state
+        | [] ->
+            fail currentToken 2 "Anonymous functions must contain at least one expression" state
+        | _ ->
+            pushExprNoAdvance (MutableExpr.AnonymousFunc(exprs, currentToken)) state
 
-    /// Parses a list of expressions at the starting token, terminating when closingTok 
-    /// finds a matching end token    
-    and private parseExpressionList (ps:IParseState) (closingTok:Token -> bool) =
-        let mutable (acc:MutableExpr list) = []
-        
+    /// Parses a list of expressions at the starting token, terminating when closingTok finds a matching end token
+    and private parseExpressionList (closingTok: Token -> bool) (state: ParseState) : ParseState * MutableExpr list =
         // Move past starting token
-        ps.Advance() |> ignore
-         
-        // Consume each expression until the closing token is found (or Eof)
-        while (ps.Current.IsSome) && (not (closingTok (ps.Current.Value))) do
-            
-            // Consume until the next comma or closing token
-            while ps.Current.IsSome && not (closingTok ps.Current.Value) && 
-                  not (Tokens.isComma ps.Current.Value) do
-                parseExpr ps |> ignore            
-        
-            // Move past the comma is found
-            if ps.Current.IsSome && (Tokens.isComma ps.Current.Value) then
-                ps.Advance() |> ignore
-            
-            if not ps.Stack.IsEmpty then
-                // Add head to list
-                let head = ps.PopExpr()
-                acc <- acc @ [head.Value]
+        let state, _ = ParseState.advance state
 
+        let rec outerLoop state acc =
+            match state.Current with
+            | None -> state, List.rev acc
+            | Some tok when closingTok tok -> state, List.rev acc
+            | _ ->
+                // Parse expressions until comma or closing token
+                let rec innerLoop state =
+                    match state.Current with
+                    | Some tok when not (closingTok tok) && not (Tokens.isComma tok) ->
+                        let state, _ = parseExpr state
+                        innerLoop state
+                    | _ -> state
+
+                let state = innerLoop state
+
+                // Skip comma if present
+                let state =
+                    match state.Current with
+                    | Some tok when Tokens.isComma tok ->
+                        let state, _ = ParseState.advance state
+                        state
+                    | _ -> state
+
+                // Pop expression and add to accumulator
+                match state.Stack with
+                | [] -> outerLoop state acc
+                | _ ->
+                    let state, expr = ParseState.popExpr state
+                    match expr with
+                    | Some e -> outerLoop state (e :: acc)
+                    | None -> outerLoop state acc
+
+        let state, exprs = outerLoop state []
         // Move past terminating token
-        ps.Advance() |> ignore
-        acc
+        let state, _ = ParseState.advance state
+        state, exprs
 
     /// Parses an expression group. If the head of the stack is an identifier, the group is parsed as a function.
-    and private parseInvocation (ps:IParseState) =
+    and private parseInvocation (state: ParseState) : ParseState * bool =
+        let rec loop state =
+            match state.Current with
+            | Some tok when Tokens.isLParen tok ->
+                let head = ParseState.peekExpr state
+                match head with
+                | Some(MutableExpr.Identifier(ident, t)) ->
+                    let state, _ = ParseState.popExpr state
+                    let state, ls = parseExpressionList Tokens.isRParen state
 
-        while ps.Current.IsSome && (Tokens.isLParen ps.Current.Value) do
+                    // Use a function handler if available
+                    let state, expr =
+                        match Map.tryFind (ident.ToLower()) funcHandlers with
+                        | Some(func) -> func state ls t
+                        | None -> state, MutableExpr.Function(MutableExpr.Identifier(ident, t), ls, t)
 
-            // Peek the head of the stack to see what is on the left of the open bracket.
-            // If an identifier is found, the result will be some kind of invocation
-            let head = ps.PeekExpr()
+                    let state = ParseState.pushExpr expr state
+                    loop state
+                | _ -> state, true
+            | _ -> state, true
 
-            match head with
-            | Some(MutableExpr.Identifier(ident, t)) ->
-            
-                ps.PopExpr() |> ignore
-                let ls = parseExpressionList ps (Tokens.isRParen)
-
-                // Use a function handler if available
-                match Map.tryFind (ident.ToLower()) funcHandlers with
-                | Some(func) -> func ps ls t |> ps.PushExpr |> ignore
-                | None -> MutableExpr.Function(MutableExpr.Identifier(ident, t), ls, t) |> ps.PushExpr |> ignore
-            | _ -> ()
-
-        true
+        loop state
 
     /// Attempts to parse a unary expression, or a binary depending on what is on the head of the stack
-    and private parseUnaryOrBinary (op:Op) (ps:IParseState) =
-        let tok = ps.Current.Value
-        if not (ps.Stack.IsEmpty) then
-            let maybeBin = parseBinary op ps
-            if maybeBin.IsSome then
-                ps.PushExpr(MutableExpr.UnaryOperator(op, maybeBin.Value, tok)) |> ignore
+    and private parseUnaryOrBinary (op: Op) (state: ParseState) : ParseState =
+        let tok = state.Current.Value
+        if not (state.Stack.IsEmpty) then
+            let state, maybeBin = parseBinary op state
+            match maybeBin with
+            | Some expr ->
+                ParseState.pushExpr (MutableExpr.UnaryOperator(op, expr, tok)) state
+            | None -> state
         else
-            parseUnary op ps |> ignore
+            let state, _ = parseUnary op state
+            state
 
     /// Parses a unary expression
-    and private parseUnary (op:Op) (ps:IParseState) =
-        
-        let currentToken = ps.Current.Value
+    and private parseUnary (op: Op) (state: ParseState) : ParseState * bool =
+        let currentToken = state.Current.Value
+        let state, advanced = ParseState.advance state
 
-        if not (ps.Advance()) then 
-            fail ps currentToken EndOfStream "Expected an expression to the right of operator"
-        elif not (parseExpr ps) then
-            fail ps ps.Current.Value EndOfStream "Unable to parse binary expression, no right hand side"
+        if not advanced then
+            fail currentToken EndOfStream "Expected an expression to the right of operator" state
         else
-            while ps.Current.IsSome && 
-                (Precedence.ofToken (ps.Current.Value)) > (Precedence.ofOp op) do
-                parseExpr ps |> ignore
-            let expr = ps.PopExpr()
-            ps.PushExpr (MutableExpr.UnaryOperator(op, expr.Value, currentToken))
-            true
-            
+            let state, parsed = parseExpr state
+            if not parsed then
+                fail state.Current.Value EndOfStream "Unable to parse binary expression, no right hand side" state
+            else
+                let rec precedenceLoop state =
+                    match state.Current with
+                    | Some tok when Precedence.ofToken tok > Precedence.ofOp op ->
+                        let state, _ = parseExpr state
+                        precedenceLoop state
+                    | _ -> state
+
+                let state = precedenceLoop state
+                let state, expr = ParseState.popExpr state
+                match expr with
+                | Some e ->
+                    let state = ParseState.pushExpr (MutableExpr.UnaryOperator(op, e, currentToken)) state
+                    state, true
+                | None ->
+                    fail currentToken EndOfStream "Unable to parse unary expression" state
+
     and private isValidAssignment expr =
         match expr with
         | Some(BinaryOperator(left, op, right, _)) ->
@@ -699,95 +757,106 @@ module public Parser =
             | _ -> false, None, None
         | _ -> false, None, None
 
-    and private parseLetBinding (ps: IParseState) =
-        ps.Advance() |> ignore
-        if not (parseExpr ps) then ()
-        let head = ps.PeekExpr()
-        if not (isIdent head) then 
-            ps.AddError(ParseError(InvalidLetBinding, "Identifier expected after let binding", (head.Value.Token)))
+    and private parseLetBinding (state: ParseState) : ParseState =
+        let state, _ = ParseState.advance state
+        let state, parsed = parseExpr state
+        if not parsed then state
         else
-            if not (parseExpr ps) then ()
-            let isValid, ident, expr = isValidAssignment (ps.PeekExpr())
-            if not isValid then
-                ps.AddError(ParseError(InvalidLetBinding, "Invalid expression found in let binding", (head.Value.Token)))
+            let head = ParseState.peekExpr state
+            if not (isIdent head) then
+                ParseState.addError (ParseError(InvalidLetBinding, "Identifier expected after let binding", head.Value.Token)) state
             else
-                ps.PopExpr() |> ignore
-                pushExprNoAdvance ps (Assign((ident.Value), (expr.Value), (head.Value.Token))) |> ignore
+                let state, _ = parseExpr state
+                let isValid, ident, expr = isValidAssignment (ParseState.peekExpr state)
+                if not isValid then
+                    ParseState.addError (ParseError(InvalidLetBinding, "Invalid expression found in let binding", head.Value.Token)) state
+                else
+                    let state, _ = ParseState.popExpr state
+                    let state = ParseState.pushExpr (Assign(ident.Value, expr.Value, head.Value.Token)) state
+                    state
 
     /// Parses a binary expression starting with the given operator.
-    and private parseBinary (op: Op) (ps:IParseState): MutableExpr option =
-        let priorSecondToken = List.tryItem 1 ps.PreviousTokens
+    and private parseBinary (op: Op) (state: ParseState) : ParseState * MutableExpr option =
+        let priorSecondToken = List.tryItem 1 state.PreviousTokens
         let isPriorCommaOrOperator =
             match priorSecondToken with
-            | Some(tok) -> Tokens.isComma tok || Precedence.ofToken tok > 0
+            | Some tok -> Tokens.isComma tok || Precedence.ofToken tok > 0
             | None -> false
-        if ps.Stack.IsEmpty || isPriorCommaOrOperator then
 
-            ps.Advance() |> ignore
-            parseExpr ps |> ignore
+        if state.Stack.IsEmpty || isPriorCommaOrOperator then
+            let state, _ = ParseState.advance state
+            let state, _ = parseExpr state
 
-            while ps.Current.IsSome && (Precedence.ofToken (ps.Current.Value)) > (Precedence.ofOp op) do
-                parseExpr ps |> ignore
+            let rec precedenceLoop state =
+                match state.Current with
+                | Some tok when Precedence.ofToken tok > Precedence.ofOp op ->
+                    let state, _ = parseExpr state
+                    precedenceLoop state
+                | _ -> state
 
-            ps.PopExpr()
+            let state = precedenceLoop state
+            let state, expr = ParseState.popExpr state
+            state, expr
         else
-            let lhs = ps.PopExpr()
-            if lhs.IsNone then
-                fail ps ps.Current.Value 2 "Left hand side of expression is empty" |> ignore                
-            else
-                if not (ps.Advance()) then 
-                    fail ps 
-                         (lhs.Value.Token) 
-                         EndOfStream 
-                         "Unable to parse binary expression, no right hand side"  
-                    |> ignore                    
+            let state, lhs = ParseState.popExpr state
+            match lhs with
+            | None ->
+                let state, _ = fail state.Current.Value 2 "Left hand side of expression is empty" state
+                state, None
+            | Some lhsExpr ->
+                let state, advanced = ParseState.advance state
+                if not advanced then
+                    let state, _ = fail lhsExpr.Token EndOfStream "Unable to parse binary expression, no right hand side" state
+                    state, None
                 else
-                    let binary = BinaryOperator(ref lhs.Value, 
-                                                op, 
-                                                ref (Invalid(ps.Current.Value)), 
-                                                ps.Current.Value)
-                    ps.PushExpr binary
+                    let binary = BinaryOperator(ref lhsExpr, op, ref (Invalid state.Current.Value), state.Current.Value)
+                    let state = ParseState.pushExpr binary state
 
-                    if not (parseExpr ps) then 
-                        fail ps 
-                             ps.Current.Value 
-                             EndOfStream 
-                             "Unable to parse binary expression, no right hand side" 
-                        |> ignore
+                    let state, parsed = parseExpr state
+                    if not parsed then
+                        let state, _ = fail state.Current.Value EndOfStream "Unable to parse binary expression, no right hand side" state
+                        state, None
                     else
-                        while ps.Current.IsSome && (Precedence.ofToken (ps.Current.Value)) > (Precedence.ofOp op) do
-                            parseExpr ps |> ignore
+                        let rec precedenceLoop state =
+                            match state.Current with
+                            | Some tok when Precedence.ofToken tok > Precedence.ofOp op ->
+                                let state, _ = parseExpr state
+                                precedenceLoop state
+                            | _ -> state
 
-                        match ps.PopExpr() with
-                        | Some(rhs) -> replaceBinRight binary rhs |> ignore
+                        let state = precedenceLoop state
+                        let state, rhs = ParseState.popExpr state
+                        match rhs with
+                        | Some rhsExpr -> replaceBinRight binary rhsExpr |> ignore
                         | None -> ()
-            None
-    
-    /// Performs a parse on a list of tokens            
+                        state, None
+
+    /// Performs a parse on a list of tokens
     [<CompiledName("ParseTokens")>]
-    let private parseTokens (tokens: Token list) =
-        let rec parserec (ps:IParseState) =
-            if (parseExpr ps) then parserec ps else ps
+    let private parseTokens (tokens: Token list) : ParseState =
+        let rec loop state =
+            let state, continue' = parseExpr state
+            if continue' then loop state else state
 
-        let ps = createParseState tokens
+        let initialState = ParseState.create tokens
         try
-            if ps.Advance() then parserec ps else ps
-        with e -> 
+            let state, advanced = ParseState.advance initialState
+            if advanced then loop state else state
+        with e ->
             // Add a ParseError to the parse state to represent the internal exception
-            ps.AddError(ParseError(InternalError, e.Message, tokens.Head))
-            ps
+            ParseState.addError (ParseError(InternalError, e.Message, tokens.Head)) initialState
 
-    /// This is the main parsing method responsible for converting a string into 
+    /// This is the main parsing method responsible for converting a string into
     /// an expression tree.
     [<CompiledName("ParseString")>]
     let parseString (str:string) (env: IEnvironment) =
         let tokens = (Scanner.stringScanner(str)) |> Lexer.lex
         let tokenErrors = Validator.validateTokens tokens
-        if not tokenErrors.IsEmpty then 
-            ParseResult(List.empty, tokenErrors) 
+        if not tokenErrors.IsEmpty then
+            ParseResult(List.empty, tokenErrors)
         else
-            let ps = tokens |> parseTokens
-            let expressions = List.rev ps.Stack |> toPublicAst
+            let finalState = parseTokens tokens
+            let expressions = List.rev finalState.Stack |> toPublicAst
             let exprErrors = Validator.validateExpressions expressions env
-            Seq.iter (fun err -> ps.AddError(err)) exprErrors
-            ParseResult(expressions, ps.Errors)
+            let allErrors = List.append finalState.Errors (List.ofSeq exprErrors)
+            ParseResult(expressions, allErrors)

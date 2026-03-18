@@ -265,7 +265,7 @@ module ErrorCodes =
 | 2 | Unhandled Failwith | Done | Changed to return error variables instead of throwing |
 | 3 | Missing Test Coverage | Partial | Added 8 edge case tests (division by zero, empty arrays, nested conditions, etc.) |
 | 4 | Parser-Evaluator Coupling | Open | |
-| 5 | Mutable Parser State | Open | |
+| 5 | Mutable Parser State | Done | Replaced IParseState interface with immutable ParseState record |
 | 6 | Outdated IronPython | Done | Migrated to pythonnet 3.0.5, updated Python files to Python 3 syntax |
 | 7 | Missing Nullable Types | Open | |
 | 8 | Result Type Underused | Open | |
