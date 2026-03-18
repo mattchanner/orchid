@@ -11,6 +11,7 @@
     <Compile Include="ScannerTests.fs" />
     <Compile Include="EvaluatorTests.fs" />
     <Compile Include="ParserTests.fs" />
+    <Compile Include="ScriptLoaderTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
