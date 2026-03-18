@@ -269,7 +269,7 @@ module ErrorCodes =
 | 6 | Outdated IronPython | Done | Migrated to pythonnet 3.0.5, updated Python files to Python 3 syntax |
 | 7 | Missing Nullable Types | Open | |
 | 8 | Result Type Underused | Open | |
-| 9 | Assertion in Production | Open | |
+| 9 | Assertion in Production | Done | Replaced assert with invalidArg for runtime validation |
 | 10 | Reflection Overhead | Open | |
 | 11 | Inefficient Seq Operations | Open | |
 | 12 | String Building Overhead | Open | |

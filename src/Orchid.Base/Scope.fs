@@ -20,7 +20,8 @@ module Scope =
     /// Creates a new environment with a new local scope
     let CreateLocalScope (env: IEnvironment, localScope: IScope, parentScope: IScope) =
 
-        assert (System.Object.ReferenceEquals(localScope, parentScope) = false)
+        if System.Object.ReferenceEquals(localScope, parentScope) then
+            invalidArg "localScope" "localScope and parentScope must be different instances"
 
         let delegatingScope = 
             { new IScope with    
